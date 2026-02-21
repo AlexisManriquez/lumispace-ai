@@ -6,14 +6,16 @@ import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { Suspense } from "react";
 
+import { ASSET_BASE_URL } from "@/src/lib/assetRegistry";
+
 // A helper component for the Textured Floor to handle Suspense locally or let it bubble up
 function TexturedFloor({ materialId }: { materialId: string }) {
     // Try to load textures from the local public folder
     const maps = useTexture({
-        map: `/textures/${materialId}/diff.jpg`,
-        normalMap: `/textures/${materialId}/nor.jpg`,
-        roughnessMap: `/textures/${materialId}/rough.jpg`,
-        aoMap: `/textures/${materialId}/ao.jpg`,
+        map: `${ASSET_BASE_URL}/assets/textures/${materialId}/diff.jpg`,
+        normalMap: `${ASSET_BASE_URL}/assets/textures/${materialId}/nor.jpg`,
+        roughnessMap: `${ASSET_BASE_URL}/assets/textures/${materialId}/rough.jpg`,
+        aoMap: `${ASSET_BASE_URL}/assets/textures/${materialId}/ao.jpg`,
     });
 
     // Optimize textures

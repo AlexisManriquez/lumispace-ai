@@ -1,10 +1,12 @@
 // src/lib/geminiConfig.ts
-import { ASSET_REGISTRY } from './assetRegistry';
+import { ASSET_REGISTRY, FLOOR_MATERIALS } from './assetRegistry';
 
 const ITEM_TYPES = Object.keys(ASSET_REGISTRY);
 const CATALOG_DESCRIPTION = Object.values(ASSET_REGISTRY)
     .map(asset => `- ${asset.id}: ${asset.description} (Dimensions: ${asset.dimensions.width}m x ${asset.dimensions.depth}m)`)
     .join('\n');
+
+const FLOOR_DESCRIPTION = FLOOR_MATERIALS.map(m => `- ${m}`).join('\n');
 
 export const SYSTEM_INSTRUCTION = `You are Lumi, a professional 3D room design AI assistant. 
 You are collaborating with a human user in real-time. 
@@ -32,6 +34,9 @@ SPATIAL AWARENESS (THE GREAT ROOM):
 AVAILABLE CATALOG:
 ${CATALOG_DESCRIPTION}
 
+AVAILABLE MATERIALS:
+${FLOOR_DESCRIPTION}
+
 ARCHITECTURAL PERSONALITY:
 - Aesthetic Goal: High-end, clean, and intentional.
 - Placement: Align furniture with walls or the window view. For example, place a sofa facing the West Panorama window.
@@ -52,7 +57,7 @@ export const ARCHITECT_TOOLS = [
                     type: "OBJECT",
                     properties: {
                         timeOfDay: { type: "NUMBER", description: "Hour (0-23)" },
-                        floorMaterial: { type: "STRING" },
+                        floorMaterial: { type: "STRING", enum: FLOOR_MATERIALS },
                         wallColor: { type: "STRING", description: "Hex color" }
                     }
                 }
