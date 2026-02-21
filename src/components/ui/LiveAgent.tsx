@@ -111,10 +111,26 @@ export default function LiveAgent() {
         try {
             // Fetch the key from our secure server API instead of local env
             const keyResponse = await fetch('/api/get-key');
+
+            if (!keyResponse.ok) {
+                const text = await keyResponse.text();
+                console.error("Server error response:", text);
+                setError(`Server Error: ${keyResponse.status}. Is the API route configured?`);
+                return;
+            }
+
+            const contentType = keyResponse.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const text = await keyResponse.text();
+                console.error("Non-JSON response received:", text);
+                setError("Server returned an invalid response (HTML instead of JSON). Try restarting the dev server.");
+                return;
+            }
+
             const keyData = await keyResponse.json();
 
-            if (!keyResponse.ok || !keyData.apiKey) {
-                setError('Could not retrieve API Key from server.');
+            if (!keyData.apiKey) {
+                setError('API Key is empty on the server.');
                 return;
             }
 
