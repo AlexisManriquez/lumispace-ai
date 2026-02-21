@@ -13,12 +13,37 @@ export interface AssetDefinition {
     clearanceRequired?: number; // Necessary for Phase 5.2 Spatial Reasoning
 }
 
-// Cleanly handle trailing slashes and log the result to help debug Cloud Run/GCS 404s
-const rawBaseUrl = process.env.NEXT_PUBLIC_ASSET_BASE_URL || '';
-export const ASSET_BASE_URL = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
+// 1. Build-time Variable (Hardcoded by Next.js during 'npm run build')
+const buildTimeBaseUrl = process.env.NEXT_PUBLIC_ASSET_BASE_URL || '';
 
+// 2. Runtime Detection
+const getRuntimeBaseUrl = () => {
+    if (typeof window === 'undefined') return buildTimeBaseUrl;
+
+    // Manual Override via URL param: ?asset_url=https://...
+    const params = new URLSearchParams(window.location.search);
+    const override = params.get('asset_url');
+    if (override) return override.endsWith('/') ? override.slice(0, -1) : override;
+
+    // Auto-detect Cloud Run (Simple check: if not localhost and no base URL, warn user)
+    return buildTimeBaseUrl;
+};
+
+const resolvedBase = getRuntimeBaseUrl();
+export const ASSET_BASE_URL = resolvedBase.endsWith('/') ? resolvedBase.slice(0, -1) : resolvedBase;
+
+// 3. Console Debugging Tool
 if (typeof window !== 'undefined') {
-    console.log("🚀 LumiSpace Asset Base URL:", ASSET_BASE_URL || "LOCAL (Relative)");
+    (window as any).lumi = {
+        config: {
+            ASSET_BASE_URL,
+            buildTimeBaseUrl,
+            params: new URLSearchParams(window.location.search).get('asset_url')
+        },
+        help: "Type 'lumi.config' to see asset paths. Add '?asset_url=...' to force a GCS bucket."
+    };
+
+    console.log("🧩 LumiSpace Config Attached. Type 'lumi' to inspect.");
 }
 
 export const ASSET_REGISTRY: Record<string, AssetDefinition> = {
