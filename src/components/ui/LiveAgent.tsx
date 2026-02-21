@@ -108,15 +108,19 @@ export default function LiveAgent() {
         setLogs([]);
         addLog("Connecting to Gemini Live...");
 
-        const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-        if (!apiKey) {
-            setError('API Key is missing in .env.local');
-            return;
-        }
-
-        const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`;
-
         try {
+            // Fetch the key from our secure server API instead of local env
+            const keyResponse = await fetch('/api/get-key');
+            const keyData = await keyResponse.json();
+
+            if (!keyResponse.ok || !keyData.apiKey) {
+                setError('Could not retrieve API Key from server.');
+                return;
+            }
+
+            const apiKey = keyData.apiKey;
+            const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`;
+
             if (wsRef.current) wsRef.current.close();
             const ws = new WebSocket(wsUrl);
             wsRef.current = ws;
