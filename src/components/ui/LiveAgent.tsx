@@ -212,7 +212,7 @@ export default function LiveAgent() {
 
                 const setupMsg = {
                     setup: {
-                        model: "models/gemini-2.5-flash-native-audio-latest",
+                        model: "models/gemini-2.0-flash-exp",
                         generationConfig: {
                             responseModalities: ["AUDIO"],
                             speechConfig: {

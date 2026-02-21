@@ -3,7 +3,7 @@
 
 import { useGLTF } from "@react-three/drei";
 import { useStore } from "@/src/store/useStore";
-import { useMemo } from "react";
+import { useMemo, Suspense } from "react";
 import * as THREE from "three";
 import { ASSET_REGISTRY } from "@/src/lib/assetRegistry";
 
@@ -51,12 +51,10 @@ export default function Furniture() {
     const activeFurniture = useStore((state) => state.activeFurniture);
     const runtimeAssetBaseUrl = useStore((state) => state.runtimeAssetBaseUrl);
 
-    // Guard: Prevent 404s in Cloud
-    if (!runtimeAssetBaseUrl && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-        return null;
-    }
-
-    const baseUrl = runtimeAssetBaseUrl || '';
+    // Sanitize baseUrl (strip trailing slash)
+    const baseUrl = (runtimeAssetBaseUrl || '').endsWith('/')
+        ? runtimeAssetBaseUrl.slice(0, -1)
+        : (runtimeAssetBaseUrl || '');
 
     return (
         <group>
@@ -65,13 +63,14 @@ export default function Furniture() {
                 const fullUrl = `${baseUrl}${definition.path}`;
 
                 return (
-                    <GenericModel
-                        key={item.id}
-                        url={fullUrl}
-                        scale={definition.baseScale}
-                        position={item.position}
-                        rotation={[0, (item.rotation * Math.PI) / 180, 0]}
-                    />
+                    <Suspense key={item.id} fallback={null}>
+                        <GenericModel
+                            url={fullUrl}
+                            scale={definition.baseScale}
+                            position={item.position}
+                            rotation={[0, (item.rotation * Math.PI) / 180, 0]}
+                        />
+                    </Suspense>
                 );
             })}
         </group>

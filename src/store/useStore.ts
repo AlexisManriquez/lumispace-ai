@@ -1,6 +1,7 @@
-// src/store/useStore.ts
 import { create } from 'zustand';
+import { ASSET_BASE_URL } from '../lib/assetRegistry';
 
+// ... (FurnitureItem and LightingState kept same)
 export interface FurnitureItem {
     id: string;
     type: string;
@@ -119,7 +120,7 @@ export const useStore = create<SpaceState>((set) => ({
 
     clearAllFurniture: () => set({ activeFurniture: [] }),
 
-    runtimeAssetBaseUrl: '',
+    runtimeAssetBaseUrl: ASSET_BASE_URL,
     setRuntimeAssetBaseUrl: (url) => set({ runtimeAssetBaseUrl: url }),
 }));
 

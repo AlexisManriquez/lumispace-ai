@@ -13,13 +13,10 @@ import { Suspense } from "react";
 function TexturedFloor({ materialId }: { materialId: string }) {
     const runtimeAssetBaseUrl = useStore((state) => state.runtimeAssetBaseUrl);
 
-    // Guard: If we are in the cloud and haven't fetched the URL yet, don't try to load
-    // This prevents 404s during the initial handshake.
-    if (!runtimeAssetBaseUrl && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-        return null;
-    }
-
-    const baseUrl = runtimeAssetBaseUrl || '';
+    // Sanitize baseUrl (strip trailing slash)
+    const baseUrl = (runtimeAssetBaseUrl || '').endsWith('/')
+        ? runtimeAssetBaseUrl.slice(0, -1)
+        : (runtimeAssetBaseUrl || '');
 
     // Try to load textures from the local public folder or GCS
     const maps = useTexture({
