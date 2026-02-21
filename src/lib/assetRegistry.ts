@@ -13,7 +13,13 @@ export interface AssetDefinition {
     clearanceRequired?: number; // Necessary for Phase 5.2 Spatial Reasoning
 }
 
-export const ASSET_BASE_URL = process.env.NEXT_PUBLIC_ASSET_BASE_URL || '';
+// Cleanly handle trailing slashes and log the result to help debug Cloud Run/GCS 404s
+const rawBaseUrl = process.env.NEXT_PUBLIC_ASSET_BASE_URL || '';
+export const ASSET_BASE_URL = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
+
+if (typeof window !== 'undefined') {
+    console.log("🚀 LumiSpace Asset Base URL:", ASSET_BASE_URL || "LOCAL (Relative)");
+}
 
 export const ASSET_REGISTRY: Record<string, AssetDefinition> = {
     sofa: {
