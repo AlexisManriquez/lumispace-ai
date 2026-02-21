@@ -1,88 +1,137 @@
 // src/components/3d/Room.tsx
-'use client';
-import { useStore } from '@/src/store/useStore';
+"use client";
+
+import { useStore } from "@/src/store/useStore";
+import { useTexture } from "@react-three/drei";
+import * as THREE from "three";
+import { Suspense } from "react";
+
+// A helper component for the Textured Floor to handle Suspense locally or let it bubble up
+function TexturedFloor({ materialId }: { materialId: string }) {
+    // Try to load textures from the local public folder
+    const maps = useTexture({
+        map: `/textures/${materialId}/diff.jpg`,
+        normalMap: `/textures/${materialId}/nor.jpg`,
+        roughnessMap: `/textures/${materialId}/rough.jpg`,
+        aoMap: `/textures/${materialId}/ao.jpg`,
+    });
+
+    // Optimize textures
+    if (maps.map) {
+        Object.values(maps).forEach((texture: any) => {
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(4, 4); // Architectural tiling
+        });
+    }
+
+    return (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -0.01, 0]}>
+            <planeGeometry args={[20, 20]} />
+            <meshStandardMaterial
+                {...maps}
+                normalScale={new THREE.Vector2(1, 1)}
+                envMapIntensity={0.5}
+            />
+        </mesh>
+    );
+}
 
 // A helper component to build a wall with or without a window
 const Wall = ({ position, rotation, hasWindow, wallColor }: any) => {
     if (!hasWindow) {
-        // Solid Wall
         return (
             <mesh position={position} rotation={rotation} castShadow receiveShadow>
-                <boxGeometry args={[10, 5, 0.2]} />
-                <meshStandardMaterial color={wallColor} />
+                <boxGeometry args={[10, 5, 0.4]} />
+                <meshStandardMaterial color={wallColor} roughness={0.9} />
             </mesh>
         );
     }
 
-    // Wall with a 4x2 Window in the center
     return (
         <group position={position} rotation={rotation}>
-            {/* Bottom piece */}
-            <mesh position={[0, -1.5, 0]} castShadow receiveShadow>
-                <boxGeometry args={[10, 2, 0.2]} />
+            <mesh position={[0, -1.75, 0]} castShadow receiveShadow>
+                <boxGeometry args={[10, 1.5, 0.4]} />
                 <meshStandardMaterial color={wallColor} />
             </mesh>
-            {/* Top piece */}
-            <mesh position={[0, 2, 0]} castShadow receiveShadow>
-                <boxGeometry args={[10, 1, 0.2]} />
+            <mesh position={[0, 1.75, 0]} castShadow receiveShadow>
+                <boxGeometry args={[10, 1.5, 0.4]} />
                 <meshStandardMaterial color={wallColor} />
             </mesh>
-            {/* Left piece */}
-            <mesh position={[-3.5, 0.5, 0]} castShadow receiveShadow>
-                <boxGeometry args={[3, 2, 0.2]} />
+            <mesh position={[-3.5, 0, 0]} castShadow receiveShadow>
+                <boxGeometry args={[3, 2, 0.4]} />
                 <meshStandardMaterial color={wallColor} />
             </mesh>
-            {/* Right piece */}
-            <mesh position={[3.5, 0.5, 0]} castShadow receiveShadow>
-                <boxGeometry args={[3, 2, 0.2]} />
+            <mesh position={[3.5, 0, 0]} castShadow receiveShadow>
+                <boxGeometry args={[3, 2, 0.4]} />
                 <meshStandardMaterial color={wallColor} />
             </mesh>
-            {/* The Glass */}
-            <mesh position={[0, 0.5, 0]}>
-                <boxGeometry args={[4, 2, 0.05]} />
-                <meshStandardMaterial color="#88ccff" transparent opacity={0.3} envMapIntensity={2} roughness={0.1} metalness={0.8} />
+
+            <mesh position={[0, 0, 0]}>
+                <boxGeometry args={[4.1, 2.1, 0.05]} />
+                <meshPhysicalMaterial
+                    transmission={0.95}
+                    thickness={0.2}
+                    roughness={0}
+                    ior={1.5}
+                    color="#eef"
+                    transparent
+                    opacity={0.3}
+                />
             </mesh>
         </group>
     );
 };
 
 export default function Room() {
-    const floorMaterial = useStore((state) => state.floorMaterial);
-    const wallColor = useStore((state) => state.wallColor);
-    const hasLeftWindow = useStore((state) => state.hasLeftWindow);
-    const hasBackWindow = useStore((state) => state.hasBackWindow);
-
-    const getFloorColor = () => {
-        switch (floorMaterial) {
-            case 'dark_tile': return '#333333';
-            case 'concrete': return '#999999';
-            case 'light_wood': default: return '#d2b48c';
-        }
-    };
+    const wallColor = useStore((state: any) => state.wallColor);
+    const floorMaterial = useStore((state: any) => state.floorMaterial);
+    const hasLeftWindow = useStore((state: any) => state.hasLeftWindow);
+    const hasBackWindow = useStore((state: any) => state.hasBackWindow);
 
     return (
         <group>
-            {/* Floor */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-                <planeGeometry args={[10, 10]} />
-                <meshStandardMaterial color={getFloorColor()} roughness={0.8} />
+            {/* 🧱 THE MAIN FLOOR */}
+            <Suspense fallback={
+                <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
+                    <planeGeometry args={[20, 20]} />
+                    <meshStandardMaterial color="#1a1a1a" roughness={0.5} />
+                </mesh>
+            }>
+                <TexturedFloor materialId={floorMaterial} />
+            </Suspense>
+
+            {/* 🌳 THE INFINITE YARD (World Floor) */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+                <planeGeometry args={[200, 200]} />
+                <meshStandardMaterial color="#0a0a0a" roughness={1.0} metalness={0.0} />
             </mesh>
 
-            {/* Back Wall (North) */}
-            <Wall
-                position={[0, 2.5, -5]}
-                rotation={[0, 0, 0]}
-                hasWindow={hasBackWindow}
-                wallColor={wallColor}
-            />
+            {/* 🏛️ ARCHITECTURE: THE GREAT ROOM LAYOUT */}
 
-            {/* Left Wall (East - Morning Sun) */}
-            <Wall
-                position={[-5, 2.5, 0]}
-                rotation={[0, Math.PI / 2, 0]}
-                hasWindow={hasLeftWindow}
-                wallColor={wallColor}
-            />
+            {/* 1. NORTH WALL (Back) - Main anchor */}
+            <Wall position={[0, 2.5, -5]} rotation={[0, 0, 0]} hasWindow={hasBackWindow} wallColor={wallColor} />
+
+            {/* 2. WEST WALL (Left) - Panorama Window side */}
+            <Wall position={[-5, 2.5, 0]} rotation={[0, Math.PI / 2, 0]} hasWindow={hasLeftWindow} wallColor={wallColor} />
+
+            {/* 3. EAST WALL (Right) - Nook side */}
+            <Wall position={[5, 2.5, 0]} rotation={[0, -Math.PI / 2, 0]} hasWindow={false} wallColor={wallColor} />
+
+            {/* 4. THE KITCHEN STUB - Creates the "Nook" in the back-right corner */}
+            {/* 4. THE KITCHEN STUB - Creates the "Nook" in the back-right corner */}
+            <mesh position={[2.5, 2.5, 0]} castShadow receiveShadow>
+                <boxGeometry args={[0.4, 5, 5]} />
+                <meshStandardMaterial color={wallColor} roughness={0.9} />
+            </mesh>
+
+            {/* 5. THE GHOST CEILING (Lid) */}
+            <mesh position={[0, 5, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
+                <planeGeometry args={[10, 10]} />
+                <meshStandardMaterial
+                    color="#ffffff"
+                    roughness={1}
+                />
+            </mesh>
         </group>
     );
 }

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { SYSTEM_INSTRUCTION, ARCHITECT_TOOLS } from '../../lib/geminiConfig';
 import { useStore } from '../../store/useStore';
+import { ASSET_REGISTRY } from '../../lib/assetRegistry';
 
 export default function LiveAgent() {
     const [isConnected, setIsConnected] = useState(false);
@@ -23,7 +24,9 @@ export default function LiveAgent() {
 
     const {
         setTimeOfDay, setFloorMaterial, setWallColor,
-        setLeftWindow, setBackWindow, setFurniture
+        setLeftWindow, setBackWindow,
+        setInteriorLighting, addFurniture, updateFurniture,
+        removeFurniture
     } = useStore();
     const nextPlayTimeRef = useRef<number>(0);
 
@@ -42,50 +45,98 @@ export default function LiveAgent() {
         try {
             switch (fc.name) {
                 case 'change_environment':
-                    const args = fc.args || {};
+                    const envArgs = fc.args || {};
 
-                    // Force state updates
-                    if (args.timeOfDay !== undefined) {
-                        addLog(`☀️ Setting Time: ${args.timeOfDay}`);
-                        setTimeOfDay(Number(args.timeOfDay));
-                    }
-                    if (args.floorMaterial) {
-                        addLog(`🪵 Setting Floor: ${args.floorMaterial}`);
-                        setFloorMaterial(args.floorMaterial);
-                    }
-                    if (args.wallColor) {
-                        addLog(`🎨 Setting Walls: ${args.wallColor}`);
-                        setWallColor(args.wallColor);
-                    }
-                    break;
+                    if (envArgs.timeOfDay !== undefined) setTimeOfDay(Number(envArgs.timeOfDay));
+                    if (envArgs.floorMaterial) setFloorMaterial(envArgs.floorMaterial);
+                    if (envArgs.wallColor) setWallColor(envArgs.wallColor);
+                    return { result: "Environment updated." };
 
-                // --- NEW PHASE 3 TOOLS ---
-                case 'modify_architecture':
-                    const { hasLeftWindow, hasBackWindow } = fc.args;
-                    if (hasLeftWindow !== undefined) {
-                        addLog(`🪟 East Window: ${hasLeftWindow}`);
-                        setLeftWindow(hasLeftWindow);
-                    }
-                    if (hasBackWindow !== undefined) {
-                        addLog(`🪟 North Window: ${hasBackWindow}`);
-                        setBackWindow(hasBackWindow);
-                    }
-                    break;
+                case 'adjust_interior_lighting':
+                    const { brightness, color, isOn } = fc.args;
+                    setInteriorLighting({
+                        ...(brightness !== undefined && { intensity: brightness }),
+                        ...(color !== undefined && { color }),
+                        ...(isOn !== undefined && { isOn })
+                    });
+                    return { result: "Lighting adjusted." };
 
                 case 'place_furniture':
-                    const { furnitureType } = fc.args;
-                    if (furnitureType) {
-                        addLog(`🪑 Furniture: ${furnitureType}`);
-                        setFurniture(furnitureType);
+                    const { item_type, x, z, rotation: r } = fc.args;
+                    const isClamping = Math.abs(x) > 4.5 || Math.abs(z) > 4.5;
+                    const newId = addFurniture({
+                        type: item_type,
+                        position: [x || 0, 0, z || 0],
+                        rotation: r || 0
+                    });
+                    addLog(`✅ Placed ${item_type} with ID: ${newId}`);
+                    return {
+                        result: isClamping
+                            ? `Placed ${item_type}, but it was moved slightly to fit. The unique ID is ${newId}.`
+                            : `Placed ${item_type} successfully. The unique ID is ${newId}.`,
+                        id: newId
+                    };
+
+                case 'update_furniture':
+                    const { id: uid, x: ux, z: uz, rotation: ur } = fc.args;
+                    updateFurniture(uid, {
+                        ...(ux !== undefined && uz !== undefined && { position: [ux, 0, uz] }),
+                        ...(ur !== undefined && { rotation: ur })
+                    });
+                    addLog(`🔄 Updated item ${uid}`);
+                    return { result: "Item updated successfully." };
+
+                case 'remove_furniture':
+                    const { id: rid } = fc.args;
+                    removeFurniture(rid);
+                    addLog(`🗑️ Removed ${rid}`);
+                    return { result: "Item removed." };
+
+                case 'clear_all_furniture':
+                    useStore.getState().clearAllFurniture();
+                    addLog(`🧹 Room cleared.`);
+                    return { result: "The room is now empty." };
+
+                case 'modify_architecture':
+                    const { hasLeftWindow, hasBackWindow } = fc.args;
+                    if (hasLeftWindow !== undefined) setLeftWindow(hasLeftWindow);
+                    if (hasBackWindow !== undefined) setBackWindow(hasBackWindow);
+                    return { result: "Architecture updated." };
+
+                case 'check_spatial_safety':
+                    const items = useStore.getState().activeFurniture;
+                    const violations: string[] = [];
+
+                    for (let i = 0; i < items.length; i++) {
+                        for (let j = i + 1; j < items.length; j++) {
+                            const itemA = items[i];
+                            const itemB = items[j];
+
+                            const dx = itemA.position[0] - itemB.position[0];
+                            const dz = itemA.position[2] - itemB.position[2];
+                            const distance = Math.sqrt(dx * dx + dz * dz);
+
+                            const defA = ASSET_REGISTRY[itemA.type];
+                            const defB = ASSET_REGISTRY[itemB.type];
+
+                            const minDistance = (defA?.clearanceRequired || 0.5) + (defB?.clearanceRequired || 0.5);
+
+                            if (distance < minDistance) {
+                                violations.push(`⚠️ SAFETY WARNING: ${itemA.type} (${itemA.id}) and ${itemB.type} (${itemB.id}) are too close (${distance.toFixed(2)}m). Minimum required: ${minDistance}m.`);
+                            }
+                        }
                     }
-                    break;
+
+                    if (violations.length === 0) {
+                        return { result: "Spatial safety check passed. All items have adequate clearance." };
+                    } else {
+                        return { result: violations.join('\n') };
+                    }
 
                 default:
-                    console.warn("Unknown tool called:", fc.name);
+                    return { error: "Unknown tool" };
             }
 
-            // Return the success result for batching
-            return { result: "Property applied successfully" };
         } catch (err) {
             addLog(`❌ Tool Execution Error: ${err}`);
             return { error: String(err) };

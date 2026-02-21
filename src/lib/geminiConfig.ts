@@ -1,57 +1,136 @@
 // src/lib/geminiConfig.ts
+import { ASSET_REGISTRY } from './assetRegistry';
+
+const ITEM_TYPES = Object.keys(ASSET_REGISTRY);
+const CATALOG_DESCRIPTION = Object.values(ASSET_REGISTRY)
+    .map(asset => `- ${asset.id}: ${asset.description} (Dimensions: ${asset.dimensions.width}m x ${asset.dimensions.depth}m)`)
+    .join('\n');
 
 export const SYSTEM_INSTRUCTION = `You are Lumi, a professional 3D room design AI assistant. 
 You are collaborating with a human user in real-time. 
 
-SPATIAL AWARENESS & CAPABILITIES:
-1. Environment: You can change the time of day (6 to 18), floor material ('light_wood', 'dark_tile', 'concrete'), and wall color (hex).
-2. Architecture: The Left Wall faces East (Morning Sun). The Back Wall faces North. You can cut windows into these walls to let natural light in.
-3. Furniture: You can place a 'kitchen_island' or a 'couch' in the center of the room, or remove them ('none').
-4. Vision: If the user holds up an object to the camera, visually analyze it, extract its hex color, and apply it to the walls.
+SPATIAL AWARENESS (THE GREAT ROOM):
+1. Layout: The room is an L-shape 10x10 Great Room. 
+   - LIVING AREA: The central and western open space.
+   - KITCHEN NOOK: The back-right corner, partially divided by a structural stub wall at X = 2.5.
+2. Wall Coordinates:
+   - NORTH Wall (Back): Z = -5. (Has the "Back Window").
+   - WEST Wall (Left): X = -5. (Has the large "Panorama Window" - West window).
+   - SOUTH Wall (Front): Z = 5. (Open to camera).
+   - EAST Wall (Right): X = 5. (Solid wall).
+3. Structural Boundaries:
+   - There is a stub wall at X = 2.5 extending from Z = -2.5 to Z = 2.5. Do not place furniture overlapping this wall.
+4. Furniture Management:
+   - Tracking: You MUST track the IDs of furniture you place.
+   - Placement: Items have volume. Keep them ~1m away from walls (e.g., place at -4 or 4, not -5).
+5. Rotation Logic:
+   - 0°: Faces SOUTH (Camera).
+   - 90°: Faces EAST (Right).
+   - 180°: Faces NORTH (Back Window).
+   - 270°: Faces WEST (Panorama Window).
+
+AVAILABLE CATALOG:
+${CATALOG_DESCRIPTION}
+
+ARCHITECTURAL PERSONALITY:
+- Aesthetic Goal: High-end, clean, and intentional.
+- Placement: Align furniture with walls or the window view. For example, place a sofa facing the West Panorama window.
+- Zones: Try to keep kitchen-related items in the "Kitchen Nook" (X > 2.5, Z < 0) and living-related items in the "Living Area".
+- Lighting: Proactively use warm, dim interior lights for evening settings.
 
 INSTRUCTIONS:
-Listen to the user's requests and use your tools to modify the room. 
-If they ask to "let in the morning sun", you should logically know to open the East (Left) window and change the time to around 8 AM.
-If they ask for a kitchen, spawn the kitchen island. 
-
-Keep your verbal responses extremely concise, conversational, and friendly. Do not read out hex codes or booleans. Simply say something like, "I've added a kitchen island and opened up the east window so you can get some morning sun!"`;
+- Track IDs for updates/removals. Replacement is Remove + Place.
+- Keep responses extremely concise and friendly.`;
 
 export const ARCHITECT_TOOLS = [
     {
         functionDeclarations: [
             {
                 name: "change_environment",
-                description: "Updates the time of day, floor material, or wall color in the 3D room.",
+                description: "Updates the time of day, floor material, or wall color.",
                 parameters: {
                     type: "OBJECT",
                     properties: {
-                        timeOfDay: { type: "NUMBER", description: "Hour of the day (6-18)" },
-                        floorMaterial: { type: "STRING", enum: ["light_wood", "dark_tile", "concrete"] },
-                        wallColor: { type: "STRING", description: "Hex color code for the walls" }
+                        timeOfDay: { type: "NUMBER", description: "Hour (0-23)" },
+                        floorMaterial: { type: "STRING" },
+                        wallColor: { type: "STRING", description: "Hex color" }
                     }
                 }
             },
             {
-                name: "modify_architecture",
-                description: "Adds or removes windows on specific walls.",
+                name: "adjust_interior_lighting",
+                description: "Controls the indoor smart lights.",
                 parameters: {
                     type: "OBJECT",
                     properties: {
-                        hasLeftWindow: { type: "BOOLEAN", description: "Set true to add a window to the East wall." },
-                        hasBackWindow: { type: "BOOLEAN", description: "Set true to add a window to the North wall." }
+                        brightness: { type: "NUMBER", description: "Intensity from 0.0 to 1.0" },
+                        color: { type: "STRING", description: "Hex color" },
+                        isOn: { type: "BOOLEAN" }
                     }
                 }
             },
             {
                 name: "place_furniture",
-                description: "Places or removes furniture in the room.",
+                description: "Adds a new furniture item. RETURNS AN ID.",
+                parameters: {
+                    type: "OBJECT",
+                    required: ["item_type", "x", "z"],
+                    properties: {
+                        item_type: { type: "STRING", enum: ITEM_TYPES },
+                        x: { type: "NUMBER", description: "X coord (-4 to 4)" },
+                        z: { type: "NUMBER", description: "Z coord (-4 to 4)" },
+                        rotation: { type: "NUMBER", description: "Rotation in degrees (0..360)" }
+                    }
+                }
+            },
+            {
+                name: "update_furniture",
+                description: "Updates an existing item's position or rotation using its unique ID.",
+                parameters: {
+                    type: "OBJECT",
+                    required: ["id"],
+                    properties: {
+                        id: { type: "STRING", description: "The ID returned by place_furniture" },
+                        x: { type: "NUMBER" },
+                        z: { type: "NUMBER" },
+                        rotation: { type: "NUMBER" }
+                    }
+                }
+            },
+            {
+                name: "remove_furniture",
+                description: "Deletes a specific furniture item by ID.",
+                parameters: {
+                    type: "OBJECT",
+                    required: ["id"],
+                    properties: {
+                        id: { type: "STRING" }
+                    }
+                }
+            },
+            {
+                name: "clear_all_furniture",
+                description: "Deletes all furniture from the room.",
+                parameters: { type: "OBJECT", properties: {} }
+            },
+            {
+                name: "check_spatial_safety",
+                description: "Checks if there's enough clearance between furniture items for accessibility and safety.",
+                parameters: { type: "OBJECT", properties: {} }
+            },
+            {
+                name: "modify_architecture",
+                description: "Toggles windows. Left Window is at X: -5, Back Window is at Z: -5.",
                 parameters: {
                     type: "OBJECT",
                     properties: {
-                        furnitureType: { type: "STRING", enum: ["none", "kitchen_island", "couch"] }
+                        hasLeftWindow: { type: "BOOLEAN" },
+                        hasBackWindow: { type: "BOOLEAN" }
                     }
                 }
             }
         ]
     }
 ];
+
+

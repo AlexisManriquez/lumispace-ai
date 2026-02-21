@@ -1,0 +1,18 @@
+[
+    {
+        "origin": [
+            "http://localhost:3000",
+            "https://lumispace-poc.a.run.app"
+        ],
+        "method": [
+            "GET",
+            "HEAD",
+            "OPTIONS"
+        ],
+        "responseHeader": [
+            "Content-Type",
+            "Access-Control-Allow-Origin"
+        ],
+        "maxAgeSeconds": 3600
+    }
+]

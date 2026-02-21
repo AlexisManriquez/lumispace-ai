@@ -1,54 +1,70 @@
 // src/components/3d/Furniture.tsx
-'use client';
-import { useStore } from '@/src/store/useStore';
+"use client";
+
+import { useGLTF } from "@react-three/drei";
+import { useStore } from "@/src/store/useStore";
+import { useMemo } from "react";
+import * as THREE from "three";
+import { ASSET_REGISTRY } from "@/src/lib/assetRegistry";
+
+interface ModelProps {
+    url: string;
+    scale?: [number, number, number];
+    position?: [number, number, number];
+    rotation?: [number, number, number];
+}
+
+function GenericModel({ url, scale = [1, 1, 1], position = [0, 0, 0], rotation = [0, 0, 0] }: ModelProps) {
+    const { scene } = useGLTF(url, true);
+    const clonedScene = useMemo(() => scene.clone(), [scene]);
+
+    clonedScene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            const mesh = child as THREE.Mesh;
+            if (mesh.material) {
+                if (Array.isArray(mesh.material)) {
+                    mesh.material.forEach(m => {
+                        if ('envMapIntensity' in m) (m as any).envMapIntensity = 2.0;
+                        if ('roughness' in m) (m as any).roughness = 0.4;
+                    });
+                } else {
+                    if ('envMapIntensity' in mesh.material) (mesh.material as any).envMapIntensity = 2.0;
+                    if ('roughness' in mesh.material) (mesh.material as any).roughness = 0.4;
+                }
+            }
+        }
+    });
+
+    return (
+        <primitive
+            object={clonedScene}
+            scale={scale}
+            position={position}
+            rotation={rotation}
+        />
+    );
+}
 
 export default function Furniture() {
-    const furnitureType = useStore((state) => state.furnitureType);
+    const activeFurniture = useStore((state) => state.activeFurniture);
 
-    if (furnitureType === 'none') return null;
+    return (
+        <group>
+            {activeFurniture.map((item) => {
+                const definition = ASSET_REGISTRY[item.type] || ASSET_REGISTRY.sofa;
 
-    if (furnitureType === 'kitchen_island') {
-        return (
-            <group position={[0, 0, 0]}>
-                {/* Island Base (Dark wood) */}
-                <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
-                    <boxGeometry args={[3, 1.8, 1.5]} />
-                    <meshStandardMaterial color="#3e2723" roughness={0.9} />
-                </mesh>
-                {/* Countertop (White Marble) */}
-                <mesh position={[0, 1.85, 0]} castShadow receiveShadow>
-                    <boxGeometry args={[3.2, 0.1, 1.7]} />
-                    <meshStandardMaterial color="#f8f9fa" roughness={0.1} metalness={0.1} />
-                </mesh>
-            </group>
-        );
-    }
-
-    if (furnitureType === 'couch') {
-        return (
-            <group position={[0, 0, 1]}>
-                {/* Couch Base */}
-                <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
-                    <boxGeometry args={[4, 0.8, 1.5]} />
-                    <meshStandardMaterial color="#455a64" roughness={0.8} />
-                </mesh>
-                {/* Backrest */}
-                <mesh position={[0, 1.2, -0.6]} castShadow receiveShadow>
-                    <boxGeometry args={[4, 1, 0.3]} />
-                    <meshStandardMaterial color="#455a64" roughness={0.8} />
-                </mesh>
-                {/* Armrests */}
-                <mesh position={[-1.85, 1, 0]} castShadow receiveShadow>
-                    <boxGeometry args={[0.3, 0.6, 1.5]} />
-                    <meshStandardMaterial color="#455a64" roughness={0.8} />
-                </mesh>
-                <mesh position={[1.85, 1, 0]} castShadow receiveShadow>
-                    <boxGeometry args={[0.3, 0.6, 1.5]} />
-                    <meshStandardMaterial color="#455a64" roughness={0.8} />
-                </mesh>
-            </group>
-        );
-    }
-
-    return null;
+                return (
+                    <GenericModel
+                        key={item.id}
+                        url={definition.url}
+                        scale={definition.baseScale}
+                        position={item.position}
+                        rotation={[0, (item.rotation * Math.PI) / 180, 0]}
+                    />
+                );
+            })}
+        </group>
+    );
 }

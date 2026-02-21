@@ -16,7 +16,7 @@ const SceneWrapper = dynamic(() => import('@/src/components/3d/SceneWrapper'), {
 });
 
 export default function Home() {
-  const { setTimeOfDay, setFloorMaterial, setWallColor, timeOfDay } = useStore();
+  const { setTimeOfDay, setFloorMaterial, setWallColor, timeOfDay, addFurniture, activeFurniture } = useStore();
 
   return (
     <main className="flex h-screen w-screen bg-gray-900 text-white font-sans">
@@ -35,15 +35,15 @@ export default function Home() {
 
         <div className="flex flex-col gap-2">
           <label className="text-sm">Time of Day: {timeOfDay}:00</label>
-          <input type="range" min="6" max="18" step="1" value={timeOfDay} onChange={(e) => setTimeOfDay(Number(e.target.value))} />
+          <input type="range" min="0" max="23" step="1" value={timeOfDay} onChange={(e) => setTimeOfDay(Number(e.target.value))} />
         </div>
 
         <div className="flex flex-col gap-2">
           <label className="text-sm">Floor Material</label>
           <div className="flex gap-2 text-sm">
-            <button onClick={() => setFloorMaterial('light_wood')} className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600">Wood</button>
-            <button onClick={() => setFloorMaterial('dark_tile')} className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600">Tile</button>
-            <button onClick={() => setFloorMaterial('concrete')} className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600">Concrete</button>
+            <button onClick={() => setFloorMaterial('wood_floor')} className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600">Wood</button>
+            <button onClick={() => setFloorMaterial('marble_01')} className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600">Marble</button>
+            <button onClick={() => setFloorMaterial('square_tiles')} className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600">Tiles</button>
           </div>
         </div>
 
@@ -51,10 +51,16 @@ export default function Home() {
           <label className="text-sm">Architecture & Furniture</label>
           <div className="flex gap-2 text-sm flex-wrap">
             <button onClick={() => useStore.getState().setLeftWindow(!useStore.getState().hasLeftWindow)} className="px-2 py-1 bg-blue-900 rounded border border-blue-500">Toggle Window</button>
-            <button onClick={() => useStore.getState().setFurniture('kitchen_island')} className="px-2 py-1 bg-purple-900 rounded border border-purple-500">Add Island</button>
-            <button onClick={() => useStore.getState().setFurniture('couch')} className="px-2 py-1 bg-purple-900 rounded border border-purple-500">Add Couch</button>
-            <button onClick={() => useStore.getState().setFurniture('none')} className="px-2 py-1 bg-red-900 rounded border border-red-500">Clear Room</button>
+            <button onClick={() => useStore.getState().addFurniture({ type: 'kitchen_island', position: [0, 0, 0], rotation: 0 })} className="px-2 py-1 bg-purple-900 rounded border border-purple-500">Add Island</button>
+            <button onClick={() => useStore.getState().addFurniture({ type: 'sofa', position: [2, 0, 0], rotation: -90 })} className="px-2 py-1 bg-purple-900 rounded border border-purple-500">Add Couch</button>
+            <button onClick={() => useStore.getState().clearAllFurniture()} className="px-2 py-1 bg-red-900 rounded border border-red-500">Clear Room</button>
           </div>
+        </div>
+
+        <div className="mt-auto pt-4 border-t border-gray-700">
+          <p className="text-[10px] text-gray-500 uppercase tracking-tighter font-mono">
+            Active Items: {activeFurniture.length}
+          </p>
         </div>
       </div>
 
