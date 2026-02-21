@@ -12,10 +12,10 @@ import { ASSET_BASE_URL } from "@/src/lib/assetRegistry";
 function TexturedFloor({ materialId }: { materialId: string }) {
     // Try to load textures from the local public folder
     const maps = useTexture({
-        map: `${ASSET_BASE_URL}/assets/textures/${materialId}/diff.jpg`,
-        normalMap: `${ASSET_BASE_URL}/assets/textures/${materialId}/nor.jpg`,
-        roughnessMap: `${ASSET_BASE_URL}/assets/textures/${materialId}/rough.jpg`,
-        aoMap: `${ASSET_BASE_URL}/assets/textures/${materialId}/ao.jpg`,
+        map: `${ASSET_BASE_URL}/assets/textures/${materialId}/diff.jpeg`,
+        normalMap: `${ASSET_BASE_URL}/assets/textures/${materialId}/nor.jpeg`,
+        roughnessMap: `${ASSET_BASE_URL}/assets/textures/${materialId}/rough.jpeg`,
+        aoMap: `${ASSET_BASE_URL}/assets/textures/${materialId}/ao.jpeg`,
     });
 
     // Optimize textures
