@@ -26,7 +26,7 @@ export default function LiveAgent() {
         setTimeOfDay, setFloorMaterial, setWallColor,
         setLeftWindow, setBackWindow,
         setInteriorLighting, addFurniture, updateFurniture,
-        removeFurniture
+        removeFurniture, setRuntimeAssetBaseUrl
     } = useStore();
     const nextPlayTimeRef = useRef<number>(0);
 
@@ -183,6 +183,12 @@ export default function LiveAgent() {
             if (!keyData.apiKey) {
                 setError('API Key is empty on the server.');
                 return;
+            }
+
+            // Sync the Asset URL from GCS/Cloud Run
+            if (keyData.assetBaseUrl) {
+                setRuntimeAssetBaseUrl(keyData.assetBaseUrl);
+                addLog(`🎯 Runtime Assets: ${keyData.assetBaseUrl}`);
             }
 
             const apiKey = keyData.apiKey;

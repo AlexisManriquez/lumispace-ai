@@ -6,16 +6,27 @@ import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { Suspense } from "react";
 
-import { ASSET_BASE_URL } from "@/src/lib/assetRegistry";
+
+
 
 // A helper component for the Textured Floor to handle Suspense locally or let it bubble up
 function TexturedFloor({ materialId }: { materialId: string }) {
-    // Try to load textures from the local public folder
+    const runtimeAssetBaseUrl = useStore((state) => state.runtimeAssetBaseUrl);
+
+    // Guard: If we are in the cloud and haven't fetched the URL yet, don't try to load
+    // This prevents 404s during the initial handshake.
+    if (!runtimeAssetBaseUrl && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+        return null;
+    }
+
+    const baseUrl = runtimeAssetBaseUrl || '';
+
+    // Try to load textures from the local public folder or GCS
     const maps = useTexture({
-        map: `${ASSET_BASE_URL}/assets/textures/${materialId}/diff.jpeg`,
-        normalMap: `${ASSET_BASE_URL}/assets/textures/${materialId}/nor.jpeg`,
-        roughnessMap: `${ASSET_BASE_URL}/assets/textures/${materialId}/rough.jpeg`,
-        aoMap: `${ASSET_BASE_URL}/assets/textures/${materialId}/ao.jpeg`,
+        map: `${baseUrl}/assets/textures/${materialId}/diff.jpg`,
+        normalMap: `${baseUrl}/assets/textures/${materialId}/nor.jpg`,
+        roughnessMap: `${baseUrl}/assets/textures/${materialId}/rough.jpg`,
+        aoMap: `${baseUrl}/assets/textures/${materialId}/ao.jpg`,
     });
 
     // Optimize textures

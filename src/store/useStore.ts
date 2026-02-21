@@ -39,6 +39,10 @@ interface SpaceState {
     updateFurniture: (id: string, updates: Partial<Omit<FurnitureItem, 'id'>>) => void;
     removeFurniture: (id: string) => void;
     clearAllFurniture: () => void;
+
+    // RUNTIME ASSET URL
+    runtimeAssetBaseUrl: string;
+    setRuntimeAssetBaseUrl: (url: string) => void;
 }
 
 // Bounding box for the room
@@ -114,5 +118,8 @@ export const useStore = create<SpaceState>((set) => ({
     })),
 
     clearAllFurniture: () => set({ activeFurniture: [] }),
+
+    runtimeAssetBaseUrl: '',
+    setRuntimeAssetBaseUrl: (url) => set({ runtimeAssetBaseUrl: url }),
 }));
 

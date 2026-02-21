@@ -49,16 +49,25 @@ function GenericModel({ url, scale = [1, 1, 1], position = [0, 0, 0], rotation =
 
 export default function Furniture() {
     const activeFurniture = useStore((state) => state.activeFurniture);
+    const runtimeAssetBaseUrl = useStore((state) => state.runtimeAssetBaseUrl);
+
+    // Guard: Prevent 404s in Cloud
+    if (!runtimeAssetBaseUrl && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+        return null;
+    }
+
+    const baseUrl = runtimeAssetBaseUrl || '';
 
     return (
         <group>
             {activeFurniture.map((item) => {
                 const definition = ASSET_REGISTRY[item.type] || ASSET_REGISTRY.sofa;
+                const fullUrl = `${baseUrl}${definition.path}`;
 
                 return (
                     <GenericModel
                         key={item.id}
-                        url={definition.url}
+                        url={fullUrl}
                         scale={definition.baseScale}
                         position={item.position}
                         rotation={[0, (item.rotation * Math.PI) / 180, 0]}

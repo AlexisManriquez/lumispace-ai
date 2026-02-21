@@ -2,7 +2,7 @@
 
 export interface AssetDefinition {
     id: string;
-    url: string;
+    path: string; // Relative path (e.g. /assets/models/...)
     baseScale: [number, number, number];
     category: 'seating' | 'kitchen' | 'decor' | 'table';
     description: string;
@@ -16,7 +16,7 @@ export interface AssetDefinition {
 // 1. Build-time Variable (Hardcoded by Next.js during 'npm run build')
 const buildTimeBaseUrl = process.env.NEXT_PUBLIC_ASSET_BASE_URL || '';
 
-// 2. Runtime Detection
+// 2. Runtime Detection (For local dev or browser-side overrides)
 const getRuntimeBaseUrl = () => {
     if (typeof window === 'undefined') return buildTimeBaseUrl;
 
@@ -25,7 +25,6 @@ const getRuntimeBaseUrl = () => {
     const override = params.get('asset_url');
     if (override) return override.endsWith('/') ? override.slice(0, -1) : override;
 
-    // Auto-detect Cloud Run (Simple check: if not localhost and no base URL, warn user)
     return buildTimeBaseUrl;
 };
 
@@ -49,7 +48,7 @@ if (typeof window !== 'undefined') {
 export const ASSET_REGISTRY: Record<string, AssetDefinition> = {
     sofa: {
         id: "sofa",
-        url: `${ASSET_BASE_URL}/assets/models/modern-sofa.glb`,
+        path: "/assets/models/modern-sofa.glb",
         baseScale: [3, 3, 3],
         category: "seating",
         description: "A wide, comfortable modern sofa for the living area.",
@@ -59,7 +58,7 @@ export const ASSET_REGISTRY: Record<string, AssetDefinition> = {
 
     kitchen_island: {
         id: "kitchen_island",
-        url: `${ASSET_BASE_URL}/assets/models/kitchen-island.glb`,
+        path: "/assets/models/kitchen-island.glb",
         baseScale: [1.5, 1.5, 1.5],
         category: "kitchen",
         description: "A sturdy kitchen island for food preparation and storage.",
