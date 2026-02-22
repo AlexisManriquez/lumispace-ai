@@ -49,12 +49,19 @@ function GenericModel({ url, scale = [1, 1, 1], position = [0, 0, 0], rotation =
 
 export default function Furniture() {
     const activeFurniture = useStore((state) => state.activeFurniture);
-    const runtimeAssetBaseUrl = useStore((state) => state.runtimeAssetBaseUrl);
+    const assetBaseUrl = useStore((state) => state.assetBaseUrl);
+
+    // 🛑 THE CRITICAL GUARD: 
+    // If the URL is empty, return null. 
+    // This stops useGLTF from firing a 404 request to the wrong domain.
+    if (!assetBaseUrl || assetBaseUrl === "") {
+        return null;
+    }
 
     // Sanitize baseUrl (strip trailing slash)
-    const baseUrl = (runtimeAssetBaseUrl || '').endsWith('/')
-        ? runtimeAssetBaseUrl.slice(0, -1)
-        : (runtimeAssetBaseUrl || '');
+    const baseUrl = assetBaseUrl.endsWith('/')
+        ? assetBaseUrl.slice(0, -1)
+        : assetBaseUrl;
 
     return (
         <group>

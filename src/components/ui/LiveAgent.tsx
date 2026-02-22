@@ -26,7 +26,7 @@ export default function LiveAgent() {
         setTimeOfDay, setFloorMaterial, setWallColor,
         setLeftWindow, setBackWindow,
         setInteriorLighting, addFurniture, updateFurniture,
-        removeFurniture, setRuntimeAssetBaseUrl
+        removeFurniture, setAssetBaseUrl, geminiApiKey, assetBaseUrl
     } = useStore();
     const nextPlayTimeRef = useRef<number>(0);
 
@@ -160,38 +160,13 @@ export default function LiveAgent() {
         addLog("Connecting to Gemini Live...");
 
         try {
-            // Fetch the key from our secure server API instead of local env
-            const keyResponse = await fetch('/api/get-key');
-
-            if (!keyResponse.ok) {
-                const text = await keyResponse.text();
-                console.error("Server error response:", text);
-                setError(`Server Error: ${keyResponse.status}. Is the API route configured?`);
+            // Keys and URLs are now auto-fetched by the root page on mount
+            if (!geminiApiKey) {
+                setError('Gemini API Key is not loaded yet. Please wait a moment.');
                 return;
             }
 
-            const contentType = keyResponse.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const text = await keyResponse.text();
-                console.error("Non-JSON response received:", text);
-                setError("Server returned an invalid response (HTML instead of JSON). Try restarting the dev server.");
-                return;
-            }
-
-            const keyData = await keyResponse.json();
-
-            if (!keyData.apiKey) {
-                setError('API Key is empty on the server.');
-                return;
-            }
-
-            // Sync the Asset URL from GCS/Cloud Run
-            if (keyData.assetBaseUrl) {
-                setRuntimeAssetBaseUrl(keyData.assetBaseUrl);
-                addLog(`🎯 Runtime Assets: ${keyData.assetBaseUrl}`);
-            }
-
-            const apiKey = keyData.apiKey;
+            const apiKey = geminiApiKey;
             const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`;
 
             if (wsRef.current) wsRef.current.close();

@@ -34,10 +34,14 @@ export const ASSET_BASE_URL = resolvedBase.endsWith('/') ? resolvedBase.slice(0,
 // 3. Console Debugging Tool
 if (typeof window !== 'undefined') {
     (window as any).lumi = {
-        config: {
-            ASSET_BASE_URL,
-            buildTimeBaseUrl,
-            params: new URLSearchParams(window.location.search).get('asset_url')
+        get config() {
+            const store = (window as any).useStore?.getState?.() || {};
+            return {
+                ASSET_BASE_URL,
+                buildTimeBaseUrl,
+                assetBaseUrl: store.assetBaseUrl,
+                params: new URLSearchParams(window.location.search).get('asset_url')
+            };
         },
         help: "Type 'lumi.config' to see asset paths. Add '?asset_url=...' to force a GCS bucket."
     };

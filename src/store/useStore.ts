@@ -41,9 +41,11 @@ interface SpaceState {
     removeFurniture: (id: string) => void;
     clearAllFurniture: () => void;
 
-    // RUNTIME ASSET URL
-    runtimeAssetBaseUrl: string;
-    setRuntimeAssetBaseUrl: (url: string) => void;
+    // RUNTIME ASSET URL & Gemini Key
+    assetBaseUrl: string;
+    setAssetBaseUrl: (url: string) => void;
+    geminiApiKey: string;
+    setGeminiApiKey: (key: string) => void;
 }
 
 // Bounding box for the room
@@ -120,7 +122,14 @@ export const useStore = create<SpaceState>((set) => ({
 
     clearAllFurniture: () => set({ activeFurniture: [] }),
 
-    runtimeAssetBaseUrl: ASSET_BASE_URL,
-    setRuntimeAssetBaseUrl: (url) => set({ runtimeAssetBaseUrl: url }),
+    assetBaseUrl: ASSET_BASE_URL,
+    setAssetBaseUrl: (url) => set({ assetBaseUrl: url }),
+    geminiApiKey: '',
+    setGeminiApiKey: (key) => set({ geminiApiKey: key }),
 }));
+
+// Attach to window for the 'lumi' debug tool
+if (typeof window !== 'undefined') {
+    (window as any).useStore = useStore;
+}
 

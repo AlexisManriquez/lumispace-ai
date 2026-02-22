@@ -7,18 +7,27 @@ import * as THREE from "three";
 import { Suspense } from "react";
 
 
-
-
 // A helper component for the Textured Floor to handle Suspense locally or let it bubble up
 function TexturedFloor({ materialId }: { materialId: string }) {
-    const runtimeAssetBaseUrl = useStore((state) => state.runtimeAssetBaseUrl);
+    const assetBaseUrl = useStore((state) => state.assetBaseUrl);
+
+    // 🛑 THE CRITICAL GUARD: 
+    // If the URL is empty, return null. 
+    // This stops useTexture from firing a 404 request to the wrong domain.
+    if (!assetBaseUrl || assetBaseUrl === "") {
+        return null;
+    }
 
     // Sanitize baseUrl (strip trailing slash)
-    const baseUrl = (runtimeAssetBaseUrl || '').endsWith('/')
-        ? runtimeAssetBaseUrl.slice(0, -1)
-        : (runtimeAssetBaseUrl || '');
+    const baseUrl = assetBaseUrl.endsWith('/')
+        ? assetBaseUrl.slice(0, -1)
+        : assetBaseUrl;
 
-    // Try to load textures from the local public folder or GCS
+    return <TexturedFloorInner materialId={materialId} baseUrl={baseUrl} />;
+}
+
+// Inner component to safely use the hook only when parameters are valid
+function TexturedFloorInner({ materialId, baseUrl }: { materialId: string, baseUrl: string }) {
     const maps = useTexture({
         map: `${baseUrl}/assets/textures/${materialId}/diff.jpg`,
         normalMap: `${baseUrl}/assets/textures/${materialId}/nor.jpg`,
@@ -26,22 +35,17 @@ function TexturedFloor({ materialId }: { materialId: string }) {
         aoMap: `${baseUrl}/assets/textures/${materialId}/ao.jpg`,
     });
 
-    // Optimize textures
     if (maps.map) {
         Object.values(maps).forEach((texture: any) => {
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(4, 4); // Architectural tiling
+            texture.repeat.set(4, 4);
         });
     }
 
     return (
         <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -0.01, 0]}>
             <planeGeometry args={[20, 20]} />
-            <meshStandardMaterial
-                {...maps}
-                normalScale={new THREE.Vector2(1, 1)}
-                envMapIntensity={0.5}
-            />
+            <meshStandardMaterial {...maps} normalScale={new THREE.Vector2(1, 1)} envMapIntensity={0.5} />
         </mesh>
     );
 }

@@ -1,6 +1,7 @@
 // src/app/page.tsx
 'use client';
-import dynamic from 'next/dynamic'; // <-- 1. Import Next.js Dynamic
+import dynamic from 'next/dynamic';
+import { useEffect } from 'react';
 import LiveAgent from '@/src/components/ui/LiveAgent';
 import { useStore } from '@/src/store/useStore';
 
@@ -16,7 +17,35 @@ const SceneWrapper = dynamic(() => import('@/src/components/3d/SceneWrapper'), {
 });
 
 export default function Home() {
-  const { setTimeOfDay, setFloorMaterial, setWallColor, timeOfDay, addFurniture, activeFurniture } = useStore();
+  const {
+    setTimeOfDay, setFloorMaterial, setWallColor,
+    timeOfDay, addFurniture, activeFurniture,
+    setAssetBaseUrl, setGeminiApiKey
+  } = useStore();
+
+  useEffect(() => {
+    // 1. Automatically fetch the keys/urls as soon as the app starts
+    const initApp = async () => {
+      try {
+        const response = await fetch('/api/get-key');
+        const data = await response.json();
+
+        if (data.assetBaseUrl) {
+          setAssetBaseUrl(data.assetBaseUrl);
+          console.log("✅ Asset URL loaded:", data.assetBaseUrl);
+        }
+
+        if (data.apiKey) {
+          setGeminiApiKey(data.apiKey);
+          console.log("✅ Gemini API Key loaded");
+        }
+      } catch (err) {
+        console.error("❌ Initial fetch failed:", err);
+      }
+    };
+
+    initApp();
+  }, [setAssetBaseUrl, setGeminiApiKey]);
 
   return (
     <main className="flex h-screen w-screen bg-gray-900 text-white font-sans">
